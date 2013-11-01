@@ -341,6 +341,8 @@ describe "bundle gem" do
           RSpec::Core::RakeTask.new(:spec)
 
           task :default => :spec
+
+          bundler_tasks(:git)
         RAKEFILE
 
         expect(bundled_app("test-gem/Rakefile").read).to eq(rakefile)
@@ -381,6 +383,8 @@ describe "bundle gem" do
           end
 
           task :default => :test
+
+          bundler_tasks(:git)
         RAKEFILE
 
         expect(bundled_app("test-gem/Rakefile").read).to eq(rakefile)

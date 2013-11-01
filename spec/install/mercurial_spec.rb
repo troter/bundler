@@ -23,11 +23,11 @@ describe "bundle install with hg sources" do
         puts "WIN" unless defined?(FOO_PREV_REF)
       RUBY
 
-      out.should == "WIN"
+      expect(out).to eq("WIN")
     end
 
     it "caches the hg repo" do
-      Dir["#{default_bundle_path}/cache/bundler/hg/foo-1.0-*"].should have(1).item
+      expect(Dir["#{default_bundle_path}/cache/bundler/hg/foo-1.0-*"].size).to eq(1)
     end
 
     it "does not update the hg source implicitly" do
@@ -47,14 +47,14 @@ describe "bundle install with hg sources" do
           puts "fail" if defined?(FOO_PREV_REF)
         RUBY
 
-        out.should be_empty
+        expect(out).to be_empty
       end
     end
 
     it "setups executables" do
       pending_jruby_shebang_fix
       bundle "exec foobar"
-      out.should == "1.0"
+      expect(out).to eq("1.0")
     end
 
     it "complains if pinned specs don't exist in the hg repo" do
@@ -64,7 +64,7 @@ describe "bundle install with hg sources" do
         gem "foo", "1.1", :hg => "#{lib_path('foo-1.0')}"
       G
 
-      out.should include("Source contains 'foo' at: 1.0")
+      expect(out).to include("Source contains 'foo' at: 1.0")
     end
 
     it "still works after moving the application directory" do
@@ -136,7 +136,7 @@ describe "bundle install with hg sources" do
         puts "WIN" unless defined?(FOO_PREV_REF)
       RUBY
 
-      out.should == "WIN"
+      expect(out).to eq("WIN")
     end
 
     it "works when the revision is a symbol" do
@@ -145,14 +145,14 @@ describe "bundle install with hg sources" do
           gem "foo"
         end
       G
-      err.should eq("")
+      expect(err).to eq("")
 
       run <<-RUBY
         require 'foo'
         puts "WIN" unless defined?(FOO_PREV_REF)
       RUBY
 
-      out.should == "WIN"
+      expect(out).to eq("WIN")
     end
   end
 
@@ -201,7 +201,7 @@ describe "bundle install with hg sources" do
       G
 
       run "require 'rack'"
-      out.should == 'WIN OVERRIDE'
+      expect(out).to eq('WIN OVERRIDE')
     end
 
     it "correctly unlocks when changing to a hg source" do
@@ -267,7 +267,7 @@ describe "bundle install with hg sources" do
       puts "WIN" unless defined?(FOO_PREV_REF)
     RUBY
 
-    out.should == "WIN"
+    expect(out).to eq("WIN")
   end
 
   it "correctly handles cases with invalid gemspecs" do
@@ -350,8 +350,8 @@ describe "bundle install with hg sources" do
     ENV['LC_MESSAGES'] = 'C' #ensure English output
     bundle :install, :expect_err => true
 
-    out.should include("An error has occurred in hg")
-    err.should include("abort", "omgomg", "not found!")
+    expect(out).to include("An error has occurred in hg")
+    expect(err).to include("abort", "omgomg", "not found!")
     ENV['LC_MESSAGES'] = oldEnv
   end
 
@@ -414,7 +414,7 @@ describe "bundle install with hg sources" do
       puts "WIN" if FOO_PREV_REF == '#{hg.ref_for("-3")}'
     RUBY
 
-    out.should == "WIN"
+    expect(out).to eq("WIN")
   end
 
   it "does not to a remote fetch if the revision is cached locally" do
@@ -427,7 +427,7 @@ describe "bundle install with hg sources" do
     FileUtils.rm_rf(lib_path('foo-1.0'))
 
     bundle "install"
-    out.should_not =~ /updating/i
+    expect(out).not_to match(/updating/i)
   end
 
   it "doesn't blow up if bundle install is run twice in a row" do
@@ -439,7 +439,7 @@ describe "bundle install with hg sources" do
 
     bundle "install"
     bundle "install", :exitstatus => true
-    exitstatus.should == 0
+    expect(exitstatus).to eq(0)
   end
 
   describe "switching sources" do
@@ -483,7 +483,7 @@ describe "bundle install with hg sources" do
       G
 
       run "require 'new_file'"
-      out.should == "USING HG"
+      expect(out).to eq("USING HG")
     end
   end
 
@@ -511,7 +511,7 @@ describe "bundle install with hg sources" do
         puts VALIM_PREV_REF
       R
 
-      out.should == old_revision
+      expect(out).to eq(old_revision)
     end
   end
 
@@ -528,7 +528,7 @@ describe "bundle install with hg sources" do
       simulate_new_machine
 
       bundle "install --deployment", :exitstatus => true
-      exitstatus.should == 0
+      expect(exitstatus).to eq(0)
     end
   end
 end

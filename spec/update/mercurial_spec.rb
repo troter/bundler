@@ -32,7 +32,7 @@ describe "bundle update" do
       G
 
       bundle "update rails"
-      out.should include("Using activesupport (3.0) from #{lib_path('rails')} (at default)")
+      expect(out).to include("Using activesupport (3.0) from #{lib_path('rails')} (at default)")
       should_be_installed "rails 3.0", "activesupport 3.0"
     end
 
@@ -89,9 +89,9 @@ describe "bundle update" do
         gem "foo", "1.0", :hg => "#{lib_path('foo_two')}"
       G
 
-      err.should be_empty
-      out.should include("Fetching #{lib_path}/foo_two")
-      out.should include("Your bundle is complete!")
+      expect(err).to be_empty
+      expect(out).to include("Fetching #{lib_path}/foo_two")
+      expect(out).to include("Your bundle is complete!")
     end
 
 
@@ -114,7 +114,7 @@ describe "bundle update" do
       G
 
       bundle "update", :exitstatus => true
-      exitstatus.should == 0
+      expect(exitstatus).to eq(0)
     end
 
     it "errors with a message when the .hg repo is gone" do
@@ -127,7 +127,7 @@ describe "bundle update" do
       lib_path("foo-1.0").join(".hg").rmtree
 
       bundle :update, :expect_err => true
-      out.should include(lib_path("foo-1.0").to_s)
+      expect(out).to include(lib_path("foo-1.0").to_s)
     end
 
   end

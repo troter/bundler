@@ -6,24 +6,24 @@ describe "Bundler::GemHelperMercurial tasks" do
       bundle 'gem test --hg'
       app = bundled_app("test")
       helper = Bundler::GemHelperMercurial.new(app.to_s)
-      helper.gemspec.name.should == 'test'
-      File.directory?("#{app.to_s}/.hg").should be_true, 'Missing .hg folder'
-      File.exist?("#{app.to_s}/.hgignore").should be_true
-      File.exist?("#{app.to_s}/.gitignore").should be_false
+      expect(helper.gemspec.name).to eq('test')
+      expect(File.directory?("#{app.to_s}/.hg")).to be true
+      expect(File.exist?("#{app.to_s}/.hgignore")).to be true
+      expect(File.exist?("#{app.to_s}/.gitignore")).to be false
     end
 
     it "should work as expected without --hg flag" do
       bundle 'gem test'
       app = bundled_app("test")
       helper = Bundler::GemHelperMercurial.new(app.to_s)
-      helper.gemspec.name.should == 'test'
-      File.directory?("#{app.to_s}/.git").should be_true, 'Missing .git folder'
-      File.exist?("#{app.to_s}/.hgignore").should be_false
-      File.exist?("#{app.to_s}/.gitignore").should be_true
+      expect(helper.gemspec.name).to eq('test')
+      expect(File.directory?("#{app.to_s}/.git")).to be true
+      expect(File.exist?("#{app.to_s}/.hgignore")).to be false
+      expect(File.exist?("#{app.to_s}/.gitignore")).to be true
       rakefile = File.open("#{app.to_s}/Rakefile", 'r') {|f| f.readlines.map() {|line| line.strip}}
-      rakefile.should include(%Q{require "bundler/gem_tasks"})
-      rakefile.should include('bundler_tasks(:git)')
-      rakefile.should_not include('bundler_tasks(:hg)')
+      expect(rakefile).to include(%Q{require "bundler/gem_tasks"})
+      expect(rakefile).to include('bundler_tasks(:git)')
+      expect(rakefile).not_to include('bundler_tasks(:hg)')
     end
   end
 
@@ -33,7 +33,7 @@ describe "Bundler::GemHelperMercurial tasks" do
     end
 
     def mock_build_message
-      mock_confirm_message "test 0.0.1 built to pkg/test-0.0.1.gem"
+      mock_confirm_message "test 0.0.1 built to pkg/test-0.0.1.gem."
     end
 
     before(:each) do
@@ -46,30 +46,30 @@ describe "Bundler::GemHelperMercurial tasks" do
     end
 
     it "uses a shell UI for output" do
-      Bundler.ui.should be_a(Bundler::UI::Shell)
+      expect(Bundler.ui).to be_a(Bundler::UI::Shell)
     end
 
-    describe 'build' do
+    describe "build" do
       it "builds" do
         mock_build_message
         @helper.build_gem
-        bundled_app('test/pkg/test-0.0.1.gem').should exist
+        expect(bundled_app('test/pkg/test-0.0.1.gem')).to exist
       end
 
       it "raises an appropriate error when the build fails" do
         # break the gemspec by adding back the TODOs...
         File.open("#{@app.to_s}/test.gemspec", 'w'){|f| f << @gemspec }
-        proc { @helper.build_gem }.should raise_error(/TODO/)
+        expect { @helper.build_gem }.to raise_error(/TODO/)
       end
     end
 
-    describe 'install' do
+    describe "install" do
       it "installs" do
         mock_build_message
-        mock_confirm_message "test (0.0.1) installed"
+        mock_confirm_message "test (0.0.1) installed."
         @helper.install_gem
-        bundled_app('test/pkg/test-0.0.1.gem').should exist
-        %x{gem list}.should include("test (0.0.1)")
+        expect(bundled_app('test/pkg/test-0.0.1.gem')).to exist
+        expect(%x{gem list}).to include("test (0.0.1)")
       end
 
       it "raises an appropriate error when the install fails" do
@@ -80,16 +80,16 @@ describe "Bundler::GemHelperMercurial tasks" do
           File.open(path, 'w'){|f| f << "not actually a gem"}
           path
         end
-        proc { @helper.install_gem }.should raise_error
+        expect { @helper.install_gem }.to raise_error
       end
     end
 
-    describe 'release' do
+    describe "release" do
       it "shouldn't push if there are uncommitted files" do
-        proc { @helper.release_gem }.should raise_error(/files that need to be committed/)
+        expect { @helper.release_gem }.to raise_error(/files that need to be committed/)
       end
 
-      it 'raises an appropriate error if there is no git remote' do
+      it "raises an appropriate error if there is no git remote" do
         Bundler.ui.stub(:confirm => nil, :error => nil) # silence messages
 
 
@@ -98,7 +98,7 @@ describe "Bundler::GemHelperMercurial tasks" do
           `hg commit -m "initial commit"`
         }
 
-        proc { @helper.release_gem }.should raise_error
+        expect { @helper.release_gem }.to raise_error
       end
 
       it "releases" do
