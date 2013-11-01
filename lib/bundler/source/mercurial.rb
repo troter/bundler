@@ -95,23 +95,6 @@ module Bundler
 
     private
 
-      def hg(command)
-        if allow_hg_ops?
-          Bundler.ui.debug("Executing hg #{command}")
-          out = %x{hg #{command}}
-          Bundler.ui.debug("Output #{out}")
-
-          if $?.exitstatus != 0
-            raise GitError, "An error has occurred in hg when running `hg #{command}`. Cannot complete bundling."
-          end
-          out
-        else
-          raise GitError, "Bundler is trying to run a `hg #{command}` at runtime. You probably need to run `bundle install`. However, " \
-                          "this error message could probably be more useful. Please submit a ticket at http://github.com/carlhuda/bundler/issues " \
-                          "with steps to reproduce as well as the following\n\nCALLER: #{caller.join("\n")}"
-        end
-      end
-
       def base_name
         File.basename(uri) #this should be enough with hg path style
       end
@@ -160,12 +143,12 @@ module Bundler
           return if has_revision_cached?
           Bundler.ui.info "Updating #{uri}"
           in_cache do
-            hg %|pull -q #{uri_escaped}|
+            hg_proxy.hg %|pull -q #{uri_escaped}|
           end
         else
           Bundler.ui.info "Fetching #{uri}"
           FileUtils.mkdir_p(cache_path.dirname)
-          hg %|clone --noupdate #{uri_escaped} "#{cache_path}"|
+          hg_proxy.hg %|clone --noupdate #{uri_escaped} "#{cache_path}"|
         end
       end
 
@@ -173,18 +156,18 @@ module Bundler
         unless File.exist?(path.join(".hg"))
           FileUtils.mkdir_p(path.dirname)
           FileUtils.rm_rf(path)
-          hg %|clone --noupdate "#{cache_path}" "#{path}"|
+          hg_proxy.hg %|clone --noupdate "#{cache_path}" "#{path}"|
         end
         Dir.chdir(path) do
-          hg %|pull "#{cache_path}"|
-          hg "update -C #{revision}"
+          hg_proxy.hg %|pull "#{cache_path}"|
+          hg_proxy.hg "update -C #{revision}"
         end
       end
 
       def has_revision_cached?
         return unless @revision
         in_cache do
-          if hg(%|-q log --style=compact|).split("\n").map() { |line| line[-12..13]}.include? @revision
+          if hg_proxy.hg(%|-q log --style=compact|).split("\n").map() { |line| line[-12..13]}.include? @revision
             return true
           end
         end
@@ -197,11 +180,15 @@ module Bundler
         @allow_remote || @allow_cached
       end
 
+      def cached_revision
+        options["revision"]
+      end
+
       def revision
         @revision ||= begin
           if allow_hg_ops?
             in_cache do
-              hg("log -r #{ref} --style=default") =~ /\b\d+:(\w{12})$/
+              hg_proxy.hg("log -r #{ref} --style=default") =~ /\b\d+:(\w{12})$/
               $1
             end
           else
@@ -219,6 +206,64 @@ module Bundler
         Dir.chdir(cache_path, &blk)
       end
 
+      def hg_proxy
+        @hg_proxy ||= MercurialProxy.new(cache_path, uri, ref, cached_revision){ allow_hg_ops? }
+      end
+
+      class MercurialNotInstalledError < GitError
+        def initialize
+          msg =  "You need to install mercurial to be able to use gems from hg repositories. "
+          msg << "For help installing mercurial, please refer to Mercurial Wiki's tutorial at http://mercurial.selenic.com/wiki/TutorialInstall"
+          super msg
+        end
+      end
+
+      class MercurialNotAllowedError < GitError
+        def initialize(command)
+          msg =  "Bundler is trying to run a `hg #{command}` at runtime. You probably need to run `bundle install`. However, "
+          msg << "this error message could probably be more useful. Please submit a ticket at http://github.com/bundler/bundler/issues "
+          msg << "with steps to reproduce as well as the following\n\nCALLER: #{caller.join("\n")}"
+          super msg
+        end
+      end
+
+      class MercurialCommandError < GitError
+        def initialize(command, path = nil)
+          msg =  "Git error: command `hg #{command}` in directory #{Dir.pwd} has failed."
+          msg << "\nIf this error persists you could try removing the cache directory '#{path}'" if path && path.exist?
+          super msg
+        end
+      end
+
+      # The MercurailProxy is responsible to iteract with hg repositories.
+      # All actions required by the Hg source is encapsualted in this
+      # object.
+      class MercurialProxy
+        attr_accessor :path, :uri, :ref
+        attr_writer :revision
+
+        def initialize(path, uri, ref, revision=nil, &allow)
+          @path     = path
+          @uri      = uri
+          @ref      = ref
+          @revision = revision
+          @allow    = allow || Proc.new { true }
+        end
+
+        def hg(command, check_errors=true)
+          raise MercurialNotAllowedError.new(command) unless allow?
+          raise MercurialNotInstalledError.new        unless Bundler.hg_present?
+          Bundler::Retry.new("hg #{command}").attempts do
+            out = %x{hg #{command}}
+            raise MercurialCommandError.new(command, path) if check_errors && !$?.success?
+            out
+          end
+        end
+
+        def allow?
+          @allow.call
+        end
+      end
     end
   end
 end

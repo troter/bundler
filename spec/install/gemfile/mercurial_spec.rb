@@ -350,7 +350,7 @@ describe "bundle install with hg sources" do
     ENV['LC_MESSAGES'] = 'C' #ensure English output
     bundle :install, :expect_err => true
 
-    expect(out).to include("An error has occurred in hg")
+    expect(out).to include("Git error:")
     expect(err).to include("abort", "omgomg", "not found!")
     ENV['LC_MESSAGES'] = oldEnv
   end
