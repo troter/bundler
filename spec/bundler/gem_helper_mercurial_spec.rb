@@ -1,4 +1,5 @@
 require "spec_helper"
+require 'bundler/gem_helper_mercurial'
 
 describe "Bundler::GemHelperMercurial tasks" do
   context "gem cli command" do
@@ -92,11 +93,8 @@ describe "Bundler::GemHelperMercurial tasks" do
       it "raises an appropriate error if there is no git remote" do
         Bundler.ui.stub(:confirm => nil, :error => nil) # silence messages
 
-
-        Dir.chdir(@app) {
-          #`hg init .`
-          `hg commit -m "initial commit"`
-        }
+        Dir.chdir(gem_repo1) { `hg init .` }
+        Dir.chdir(@app) { `hg commit -m "initial commit"` }
 
         expect { @helper.release_gem }.to raise_error
       end
@@ -108,9 +106,7 @@ describe "Bundler::GemHelperMercurial tasks" do
 
         @helper.should_receive(:rubygem_push).with(bundled_app('test/pkg/test-0.0.1.gem').to_s)
 
-        Dir.chdir(gem_repo1) {
-          `hg init .`
-        }
+        Dir.chdir(gem_repo1) { `hg init .` }
         Dir.chdir(@app) {
           #`hg init .`
           open('.hg/hgrc', 'a') { |f| f << "[paths]\ndefault = #{gem_repo1}\n"}
