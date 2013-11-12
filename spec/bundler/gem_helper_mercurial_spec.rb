@@ -120,6 +120,26 @@ describe "Bundler::GemHelperMercurial tasks" do
         }
         @helper.release_gem
       end
+
+      it "releases even if tag already exists" do
+        mock_build_message
+        mock_confirm_message("Tag v0.0.1 has already been created.")
+
+        @helper.should_receive(:rubygem_push).with(bundled_app('test/pkg/test-0.0.1.gem').to_s)
+
+        Dir.chdir(gem_repo1) {
+          `hg init .`
+        }
+        Dir.chdir(@app) {
+          #`hg init .`
+          open('.hg/hgrc', 'a') { |f| f << "[paths]\ndefault = #{gem_repo1}\n"}
+          `hg commit -m "initial commit"`
+          Open3.popen3("hg push") # use popen3 to silence output...
+          `hg commit -m "another commit"`
+          `hg tag -m "Version v0.0.1" v0.0.1`
+        }
+        @helper.release_gem
+      end
     end
   end
 end

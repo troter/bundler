@@ -19,12 +19,13 @@ module Bundler
     alias :perform_git_push :perform_hg_push
 
 
-    def guard_already_tagged
+    def already_tagged?
       # mercurial tags are outputted in the form:
       # tagname1                local_commit_number:commit_hash
       # tagname2                local_commit_number:commit_hash
-      sh('hg tags').split(/\n/).each do |t|
-        raise("This tag has already been committed to the repo.") if t.start_with?(version_tag)
+      if sh('hg tags').split(/\n/).find { |t| t.start_with?(version_tag) }
+        Bundler.ui.confirm "Tag #{version_tag} has already been created."
+        true
       end
     end
 
